@@ -4,6 +4,8 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.String (joinWith)
+import Data.String.Extra (words)
 
 data Station
   = Isolatorweg
@@ -51,6 +53,9 @@ derive instance ordStation :: Ord Station
 
 instance showStation :: Show Station where
   show = genericShow
+
+printStation :: Station -> String
+printStation = show >>> words >>> joinWith " "
 
 -- | `Stop` indicates the idea of a station having multiple metros go through it
 newtype Stop = Stop { station :: Station, metro :: Array Int }
