@@ -28,7 +28,7 @@ mkLines num arr = edges.acc where
   }
 
 has :: Station -> Array Station -> Adjacency
-has station siblings = Tuple station (List.fromFoldable $ mkSiblings siblings) where
+has station siblings = Tuple station (mkSiblings siblings) where
   mkSiblings :: Array Station -> List (Tuple Station Int)
   mkSiblings = List.fromFoldable <<< map (\st -> Tuple st baseTariff)
 
