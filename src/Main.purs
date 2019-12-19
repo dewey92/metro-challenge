@@ -2,9 +2,10 @@ module Main where
 
 import Prelude
 
-import Data.Array (foldl, singleton, (!!))
-import Data.Graph (fromAdjacencyList, shortestPath)
-import Data.List (List(..), unionBy, (:))
+import Data.Array ((!!))
+import Data.Array as Array
+import Data.Graph (Graph, fromAdjacencyList, shortestPath)
+import Data.List (List(..), (:))
 import Data.List as List
 import Data.Maybe (Maybe(..), fromJust, maybe)
 import Data.Tuple (Tuple(..))
@@ -21,7 +22,7 @@ baseTariff = 10
 
 mkLines :: Int -> Array Station -> AdjacencyList
 mkLines num arr = edges.acc where
-  edges = foldl toEdge { i: 0, acc: Nil } arr
+  edges = Array.foldl toEdge { i: 0, acc: Nil } arr
   toEdge { i, acc } a = {
     i: i + 1,
     acc: (a `has` (adjacentArray i arr)) : acc
@@ -43,7 +44,7 @@ has station siblings = Tuple station (mkSiblings siblings) where
 -- | ```
 adjacentArray :: ∀ a. Int -> Array a -> Array a
 adjacentArray i arr = (def $ arr !! (i-1)) <> (def $ arr !! (i+1)) where
-  def = maybe [] singleton
+  def = maybe [] Array.singleton
 
 unionEdges :: AdjacencyList -> AdjacencyList -> AdjacencyList
 unionEdges src xs = List.foldl go src xs where
@@ -59,7 +60,7 @@ unionEdges src xs = List.foldl go src xs where
 
   mergeInner :: Adjacency -> Adjacency -> Adjacency
   mergeInner (Tuple stationX listX) (Tuple stationA listA) = Tuple stationA merged where
-    merged = unionBy (\(Tuple stX _) (Tuple stA _) -> stX == stA) listA listX
+    merged = List.unionBy (\(Tuple stX _) (Tuple stA _) -> stX == stA) listA listX
 
 line50 :: AdjacencyList
 line50 = mkLines 50 $
@@ -117,7 +118,19 @@ line52 = mkLines 52 $
   , Noord
   ]
 
+amsMetroLines :: Graph Station Int
+amsMetroLines = fromAdjacencyList $ line50 `unionEdges` line51 `unionEdges` line52
+
+withMetroNumber :: List Station -> List { station :: Station, metro :: Array Int }
+withMetroNumber xs = do
+  x <- xs
+  let is50 = 50 <$ List.findIndex (\(Tuple st _) -> st == x) line50
+  let is51 = 51 <$ List.findIndex (\(Tuple st _) -> st == x) line51
+  let is52 = 52 <$ List.findIndex (\(Tuple st _) -> st == x) line52
+  pure { station: x, metro: Array.foldl (\acc curr -> maybe acc Array.singleton curr) [] [is50, is51, is52] }
+
 main :: Effect Unit
 main = do
-  let lines = fromAdjacencyList $ line50 `unionEdges` line51 `unionEdges` line52
-  logShow $ shortestPath Amstelveenseweg Nieuwmarkt lines
+  logShow $ case shortestPath Amstelveenseweg Nieuwmarkt amsMetroLines of
+    Nothing -> "Can't find it!"
+    Just path -> show $ withMetroNumber $ path
