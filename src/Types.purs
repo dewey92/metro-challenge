@@ -4,8 +4,10 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.List (List)
 import Data.String (joinWith)
 import Data.String.Extra (words)
+import Data.Tuple (Tuple)
 
 data Station
   = Isolatorweg
@@ -45,7 +47,7 @@ data Station
   | VerrijnStuartweg
   | Ganzenhoef
   | Kraaiennest
-  | Gaasperplaas
+  | Gaasperplas
 
 derive instance genericStation :: Generic Station _
 derive instance eqStation :: Eq Station
@@ -54,16 +56,8 @@ derive instance ordStation :: Ord Station
 instance showStation :: Show Station where
   show = genericShow
 
+type Adjacency = Tuple Station (List (Tuple Station Number))
+type AdjacencyList = List Adjacency
+
 printStation :: Station -> String
 printStation = show >>> words >>> joinWith " "
-
--- | `Stop` indicates the idea of a station having multiple metros go through it
-newtype Stop = Stop { station :: Station, metro :: Array Int }
-
-derive instance eqStop :: Eq Stop
-
-instance ordStop :: Ord Stop where
-  compare (Stop a) (Stop b) = compare a.station b.station
-
-instance showStop :: Show Stop where
-  show (Stop { station, metro }) = "Stop={" <> show station <> ", " <> show metro <> "}"
