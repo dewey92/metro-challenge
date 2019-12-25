@@ -8,7 +8,7 @@ import Data.Graph (Graph, fromAdjacencyList, shortestPath)
 import Data.Int (toNumber)
 import Data.List (List)
 import Data.List as List
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Console (log)
@@ -115,21 +115,16 @@ amsMetroLines :: Graph Station Number
 amsMetroLines = fromAdjacencyList allRoutes
 
 withMetroNumber :: List Station -> List { station :: Station, metro :: Array Int }
-withMetroNumber xs = do
-  x <- xs
+withMetroNumber xs = map (\x -> { station: x, metro: metroNums x }) xs where
   -- TODO: make this algorithm better
-  let is50 = 50 <$ List.findIndex (\(Tuple st _) -> st == x) line50
-  let is51 = 51 <$ List.findIndex (\(Tuple st _) -> st == x) line51
-  let is52 = 52 <$ List.findIndex (\(Tuple st _) -> st == x) line52
-  let is53 = 53 <$ List.findIndex (\(Tuple st _) -> st == x) line53
-  let is54 = 54 <$ List.findIndex (\(Tuple st _) -> st == x) line54
-  pure $ {
-    station: x,
-    metro: Array.foldl
-      (\acc curr -> maybe acc (Array.snoc acc) curr)
-      []
-      [is50, is51, is52, is53, is54]
-  }
+  metroNums x = Array.catMaybes
+    [ elemStation x 50 line50
+    , elemStation x 51 line51
+    , elemStation x 52 line52
+    , elemStation x 53 line53
+    , elemStation x 54 line54
+    ]
+  elemStation x num line = num <$ List.findIndex (\(Tuple st _) -> st == x) line
 
 prettyPrintPath :: List { station :: Station, metro :: Array Int } -> String
 prettyPrintPath xs = withMsg $ List.foldl go "" xs where

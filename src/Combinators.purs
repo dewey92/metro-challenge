@@ -11,7 +11,7 @@ import Data.Array ((!!))
 import Data.Array as Array
 import Data.List (List(..), (:))
 import Data.List as List
-import Data.Maybe (Maybe(..), fromJust, maybe)
+import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafePartial)
 import Types (Adjacency, Station, AdjacencyList)
@@ -28,9 +28,9 @@ mkRoute arr = edges.acc where
   }
 
 has :: Station -> Array Station -> Adjacency
-has station siblings = Tuple station (mkSiblings siblings) where
-  mkSiblings :: Array Station -> List (Tuple Station Number)
-  mkSiblings = List.fromFoldable <<< map (\st -> Tuple st baseTariff)
+has station siblings = Tuple station (mkWeight siblings) where
+  mkWeight :: Array Station -> List (Tuple Station Number)
+  mkWeight = Array.foldl (\acc st -> (Tuple st baseTariff) : acc) Nil
 
 -- | Gets the previous and the next item of the current one and merget them
 -- | together. If no item found, defaults to an empty array
@@ -42,23 +42,19 @@ has station siblings = Tuple station (mkSiblings siblings) where
 -- | adjacentArray -1 [7, 8, 9] == []
 -- | ```
 adjacentArray :: ∀ a. Int -> Array a -> Array a
-adjacentArray i arr = (def $ arr !! (i-1)) <> (def $ arr !! (i+1)) where
-  def = maybe [] Array.singleton
+adjacentArray i arr = Array.catMaybes [arr !! (i - 1), arr !! (i + 1)]
 
 unionEdges :: AdjacencyList -> AdjacencyList -> AdjacencyList
-unionEdges src xs = List.foldl go src xs where
+unionEdges src xs = List.foldr go src xs where
 
-  go :: AdjacencyList -> Adjacency -> AdjacencyList
-  go acc x@(Tuple station _) = do
-    case findStopIx station acc of
-      Nothing -> List.snoc acc x
+  go :: Adjacency -> AdjacencyList -> AdjacencyList
+  go x@(Tuple station _) acc = do
+    case List.findIndex (\(Tuple s _) -> s == station) acc of
+      Nothing -> x : acc
       Just ix -> unsafePartial $ fromJust (List.modifyAt ix (mergeInner x) acc)
 
-  findStopIx :: ∀ a. Station -> List (Tuple Station a) -> Maybe Int
-  findStopIx st = List.findIndex (\(Tuple s _) -> s == st)
-
   mergeInner :: Adjacency -> Adjacency -> Adjacency
-  mergeInner (Tuple stationX listX) (Tuple stationA listA) = Tuple stationA merged where
-    merged = List.unionBy (\(Tuple stX _) (Tuple stA _) -> stX == stA) listA listX
+  mergeInner (Tuple _ listX) (Tuple stationA listA) = Tuple stationA mergedAdjacency where
+    mergedAdjacency = List.union listA listX
 
 infixl 6 unionEdges as <:>
